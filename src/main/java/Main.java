@@ -146,8 +146,8 @@ public class Main {
                         String cmd = map.get("command").toString();
                         StringBuilder result = new StringBuilder();
                         ProcessBuilder processBuilder = new ProcessBuilder();
-                        List<String> builderList = new ArrayList<>();
-                        builderList.add(cmd);
+                        List<String> argsList = List.of(cmd.split(" "));
+                        List<String> builderList = new ArrayList<>(argsList);
 
                         try {
                             processBuilder.command(builderList);
