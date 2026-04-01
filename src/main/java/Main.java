@@ -79,7 +79,8 @@ public class Main {
                 System.out.println(content);
 
             }
+        } else {
+            System.out.print(response.choices().get(0).message().content().orElse(""));
         }
-        System.out.print(response.choices().get(0).message().content().orElse(""));
     }
 }
