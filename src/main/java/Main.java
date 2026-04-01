@@ -56,11 +56,12 @@ public class Main {
         messages.add(Map.of("role", "user", "content", prompt));
 
         while(true) {
+            ChatCompletionCreateParams paramBuilder  = ChatCompletionCreateParams.builder()
+                    .model("anthropic/claude-haiku-4.5")
+                    .addUserMessage(prompt).addTool(readTool)
+                    .build();
             ChatCompletion response = client.chat().completions().create(
-                    ChatCompletionCreateParams.builder()
-                            .model("anthropic/claude-haiku-4.5")
-                            .addUserMessage(prompt).addTool(readTool)
-                            .build()
+                    paramBuilder
             );
 
             if (response.choices().isEmpty()) {
@@ -73,17 +74,23 @@ public class Main {
             // TODO: Uncomment the line below to pass the first stage
             if(response.choices().get(0).message().toolCalls().isPresent() && !response.choices().get(0).message().toolCalls().isEmpty()) {
                 Optional<List<ChatCompletionMessageToolCall>> toolCalls = response.choices().get(0).message().toolCalls();
-                ChatCompletionMessageToolCall.Function fun = toolCalls.get().getFirst().function();
+                for( int i=0;i<toolCalls.stream().count();i++) {
+                ChatCompletionMessageToolCall.Function fun = toolCalls.get().get(i).function();
                 if(fun.name().equals("Read")) {
-                    messages.add(Map.of("role", "assistant", "content", "", "tool_calls", toolCalls));
                     String arguments = fun.arguments();
                     ObjectMapper mapper = new ObjectMapper();
                     Map map = mapper.readValue(arguments, Map.class);
                     String content = Files.readString(Path.of(map.get("file_path").toString()));
                     //System.out.println(content);
-                    messages.add(Map.of("role", "assistant", "tool_call_id", toolCalls.get().getFirst().id(),"content", content));
+                    var toolResponseMessage =
+                            ChatCompletionMessageParam.ofTool(
+                                    ChatCompletionToolMessageParam.builder()
+                                            .toolCallId(toolCalls.get().get(i).id())
+                                            .content(content)
+                                            .build());
+                    paramBuilder.messages().add(toolResponseMessage);
 
-                }
+                } }
             } else {
                 break;
             }
