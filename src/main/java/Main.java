@@ -7,6 +7,7 @@ import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 import com.openai.models.chat.completions.ChatCompletionTool;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,8 @@ public class Main {
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .build();
+        List<String> list = new ArrayList<>();
+        list.add("file_path");
         ChatCompletionTool readTool = ChatCompletionTool.builder().
                 type(JsonValue.from("function")).
                 function(FunctionDefinition.builder().name("Read").
@@ -41,7 +44,7 @@ public class Main {
                                 putAdditionalProperty("properties",
                                         JsonValue.from(Map.of("file_path", Map.of("type", "string",
                                         "description", "The path to the file to be read"))))
-                                                .putAdditionalProperty("required", (JsonValue) List.of("file_path"))
+                                                .putAdditionalProperty("required", (JsonValue) (list))
                                         .build())
                         .build()).build();
 
