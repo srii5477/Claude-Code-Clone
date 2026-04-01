@@ -6,7 +6,9 @@ import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
 import com.openai.models.chat.completions.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -52,6 +54,20 @@ public class Main {
                                 )
                                         .build())
                         .build()).build();
+        ChatCompletionTool shellTool = ChatCompletionTool.builder().
+                type(JsonValue.from("function")).
+                function(FunctionDefinition.builder().name("Bash").
+                        description("Execute a shell command.").
+                        parameters(FunctionParameters.builder()
+                                .putAdditionalProperty("type", JsonValue.from("object")).
+                                putAdditionalProperty("properties",
+                                        JsonValue.from(Map.of("command", Map.of("type", "string",
+                                                "description", "The command to execute"))))
+                                .putAdditionalProperty("required",
+                                        JsonValue.from(List.of(JsonValue.from("command")))
+                                )
+                                .build())
+                        .build()).build();
         ChatCompletionTool writeTool = ChatCompletionTool.builder().
                 type(JsonValue.from("function")).
                 function(FunctionDefinition.builder().name("Write").
@@ -79,7 +95,7 @@ public class Main {
         while(true) {
             ChatCompletionCreateParams.Builder builder = ChatCompletionCreateParams.builder()
                     .model("anthropic/claude-haiku-4.5").addTool(readTool)
-                    .addTool(writeTool);
+                    .addTool(writeTool).addTool(shellTool);
             for(ChatCompletionMessageParam item: customHistory) {
                 builder.addMessage(item);
             }
@@ -124,6 +140,36 @@ public class Main {
                                         ChatCompletionToolMessageParam.builder()
                                                 .toolCallId(toolCalls.get().get(i).id())
                                                 .content(contentToWrite)
+                                                .build());
+                        customHistory.add(customAddition);
+                    } else if(fun.name().equals("Bash")) {
+                        String cmd = map.get("command").toString();
+                        StringBuilder result = new StringBuilder();
+                        ProcessBuilder processBuilder = new ProcessBuilder();
+                        List<String> builderList = new ArrayList<>();
+                        builderList.add(cmd);
+
+                        try {
+                            processBuilder.command(builderList);
+                            Process process = processBuilder.start();
+
+                            // To read the output list
+                            BufferedReader reader = new BufferedReader(new InputStreamReader(
+                                    process.getInputStream()));
+
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                result.append(line);
+                            }
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        ChatCompletionMessageParam customAddition =
+                                ChatCompletionMessageParam.ofTool(
+                                        ChatCompletionToolMessageParam.builder()
+                                                .toolCallId(toolCalls.get().get(i).id())
+                                                .content(result.toString())
                                                 .build());
                         customHistory.add(customAddition);
                     }
