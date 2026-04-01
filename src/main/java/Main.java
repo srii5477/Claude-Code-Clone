@@ -72,7 +72,7 @@ public class Main {
             ChatCompletionMessage modelMsg = response.choices().get(0).message();
 
             customHistory.add(ChatCompletionMessageParam.ofAssistant(modelMsg.toParam()));
-            if(modelMsg.toolCalls().isPresent()) {
+            if(modelMsg.toolCalls().isPresent() && !modelMsg.toolCalls().isEmpty()) {
 
                 Optional<List<ChatCompletionMessageToolCall>> toolCalls = modelMsg.toolCalls();
                 for( int i=0;i<toolCalls.stream().count();i++) {
