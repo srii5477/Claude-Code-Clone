@@ -52,13 +52,34 @@ public class Main {
                                 )
                                         .build())
                         .build()).build();
+        ChatCompletionTool writeTool = ChatCompletionTool.builder().
+                type(JsonValue.from("function")).
+                function(FunctionDefinition.builder().name("Write").
+                        description("Write content to a file").
+                        parameters(FunctionParameters.builder()
+                                .putAdditionalProperty("type", JsonValue.from("object")).
+                                putAdditionalProperty("properties",
+                                        JsonValue.from(Map.of("file_path", Map.of("type", "string",
+                                                "description", "The path to the file to be written to"),
+                                                "content", Map.of(
+                                                        "type", "string",
+                                                        "description", "The content to write to the file"
+                                                )))
+                                )
+                                .putAdditionalProperty("required",
+                                        JsonValue.from(List.of(JsonValue.from("file_path"),
+                                                JsonValue.from("content")))
+                                )
+                                .build())
+                        .build()).build();
         List<ChatCompletionMessageParam> customHistory = new ArrayList<>();
         customHistory.add(ChatCompletionMessageParam.ofUser(
                 ChatCompletionUserMessageParam.builder().content(prompt).build()
         ));
         while(true) {
             ChatCompletionCreateParams.Builder builder = ChatCompletionCreateParams.builder()
-                    .model("anthropic/claude-haiku-4.5").addTool(readTool);
+                    .model("anthropic/claude-haiku-4.5").addTool(readTool)
+                    .addTool(writeTool);
             for(ChatCompletionMessageParam item: customHistory) {
                 builder.addMessage(item);
             }
@@ -79,22 +100,34 @@ public class Main {
 
                 Optional<List<ChatCompletionMessageToolCall>> toolCalls = modelMsg.toolCalls();
                 for( int i=0;i<toolCalls.stream().count();i++) {
-                ChatCompletionMessageToolCall.Function fun = toolCalls.get().get(i).function();
-                if(fun.name().equals("Read")) {
+                    ChatCompletionMessageToolCall.Function fun = toolCalls.get().get(i).function();
                     String arguments = fun.arguments();
                     ObjectMapper mapper = new ObjectMapper();
                     Map map = mapper.readValue(arguments, Map.class);
-                    String content = Files.readString(Path.of(map.get("file_path").toString()));
-                    //System.out.println(content);
-                    ChatCompletionMessageParam customAddition =
-                            ChatCompletionMessageParam.ofTool(
-                                    ChatCompletionToolMessageParam.builder()
-                                            .toolCallId(toolCalls.get().get(i).id())
-                                            .content(content)
-                                            .build());
-                    customHistory.add(customAddition);
 
-                } }
+                    if (fun.name().equals("Read")) {
+                        String content = Files.readString(Path.of(map.get("file_path").toString()));
+                        ChatCompletionMessageParam customAddition =
+                                ChatCompletionMessageParam.ofTool(
+                                        ChatCompletionToolMessageParam.builder()
+                                                .toolCallId(toolCalls.get().get(i).id())
+                                                .content(content)
+                                                .build());
+                        customHistory.add(customAddition);
+
+                    } else if(fun.name().equals("Write")) {
+                        String contentToWrite = map.get("content").toString();
+                        String path = map.get("file_path").toString();
+                        Files.writeString(Path.of(path), contentToWrite);
+                        ChatCompletionMessageParam customAddition =
+                                ChatCompletionMessageParam.ofTool(
+                                        ChatCompletionToolMessageParam.builder()
+                                                .toolCallId(toolCalls.get().get(i).id())
+                                                .content(contentToWrite)
+                                                .build());
+                        customHistory.add(customAddition);
+                    }
+                }
             } else {
                 System.out.println(modelMsg.content().orElse(""));
                 break;
