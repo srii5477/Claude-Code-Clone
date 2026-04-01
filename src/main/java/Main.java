@@ -52,9 +52,6 @@ public class Main {
                                 )
                                         .build())
                         .build()).build();
-        ArrayList<Object> messages = new ArrayList<>();
-        messages.add(Map.of("role", "user", "content", prompt));
-
         while(true) {
             ChatCompletionCreateParams paramBuilder  = ChatCompletionCreateParams.builder()
                     .model("anthropic/claude-haiku-4.5")
@@ -76,19 +73,22 @@ public class Main {
                 Optional<List<ChatCompletionMessageToolCall>> toolCalls = response.choices().get(0).message().toolCalls();
                 for( int i=0;i<toolCalls.stream().count();i++) {
                 ChatCompletionMessageToolCall.Function fun = toolCalls.get().get(i).function();
+                    List<ChatCompletionMessageParam> list = new ArrayList<>(paramBuilder.messages());
                 if(fun.name().equals("Read")) {
                     String arguments = fun.arguments();
                     ObjectMapper mapper = new ObjectMapper();
                     Map map = mapper.readValue(arguments, Map.class);
                     String content = Files.readString(Path.of(map.get("file_path").toString()));
                     //System.out.println(content);
-                    var toolResponseMessage =
+                    ChatCompletionMessageParam customAddition =
                             ChatCompletionMessageParam.ofTool(
                                     ChatCompletionToolMessageParam.builder()
                                             .toolCallId(toolCalls.get().get(i).id())
                                             .content(content)
                                             .build());
-                    paramBuilder.messages().add(toolResponseMessage);
+                    list.add(customAddition);
+                    paramBuilder.messages().clear();
+                    paramBuilder.messages().addAll(list);
 
                 } }
             } else {
