@@ -36,22 +36,44 @@ public class Main {
                 .build();
         List<String> list = new ArrayList<>();
         list.add("file_path");
+        JsonValue schema = JsonValue.from(
+                """
+                {
+                  "type": "function",
+                            "function": {
+                              "name": "Read",
+                              "description": "Read and return the contents of a file",
+                              "parameters": {
+                                "type": "object",
+                                "properties": {
+                                  "file_path": {
+                                    "type": "string",
+                                    "description": "The path to the file to read"
+                                  }
+                                },
+                                "required": ["file_path"]
+                              }
+                            }
+                }
+                """
+        );
         ChatCompletionTool readTool = ChatCompletionTool.builder().
                 type(JsonValue.from("function")).
                 function(FunctionDefinition.builder().name("Read").
                         description("Read and return the contents of a file").
-                        parameters(FunctionParameters.builder().putAdditionalProperty("type", JsonValue.from("object")).
+                        parameters(FunctionParameters.builder()
+                                .putAdditionalProperty("type", JsonValue.from("object")).
                                 putAdditionalProperty("properties",
                                         JsonValue.from(Map.of("file_path", Map.of("type", "string",
                                         "description", "The path to the file to be read"))))
-                                                .putAdditionalProperty("required", (JsonValue) (list))
+                                                .putAdditionalProperty("required", JsonValue.from("file_path"))
                                         .build())
                         .build()).build();
 
         ChatCompletion response = client.chat().completions().create(
                 ChatCompletionCreateParams.builder()
                         .model("anthropic/claude-haiku-4.5")
-                        .addUserMessage(prompt).addTool(readTool)
+                        .addUserMessage(prompt).tools(schema)
                         .build()
         );
 
