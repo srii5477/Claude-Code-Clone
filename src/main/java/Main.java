@@ -1,5 +1,6 @@
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.JsonField;
 import com.openai.core.JsonValue;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
@@ -34,29 +35,7 @@ public class Main {
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .build();
-        List<String> list = new ArrayList<>();
-        list.add("file_path");
-        JsonValue schema = JsonValue.from(
-                """
-                {
-                  "type": "function",
-                            "function": {
-                              "name": "Read",
-                              "description": "Read and return the contents of a file",
-                              "parameters": {
-                                "type": "object",
-                                "properties": {
-                                  "file_path": {
-                                    "type": "string",
-                                    "description": "The path to the file to read"
-                                  }
-                                },
-                                "required": ["file_path"]
-                              }
-                            }
-                }
-                """
-        );
+
         ChatCompletionTool readTool = ChatCompletionTool.builder().
                 type(JsonValue.from("function")).
                 function(FunctionDefinition.builder().name("Read").
@@ -66,14 +45,16 @@ public class Main {
                                 putAdditionalProperty("properties",
                                         JsonValue.from(Map.of("file_path", Map.of("type", "string",
                                         "description", "The path to the file to be read"))))
-                                                .putAdditionalProperty("required", JsonValue.from("file_path"))
+                                .putAdditionalProperty("required",
+                                        JsonValue.from(List.of(JsonValue.from("file_path")))
+                                )
                                         .build())
                         .build()).build();
 
         ChatCompletion response = client.chat().completions().create(
                 ChatCompletionCreateParams.builder()
                         .model("anthropic/claude-haiku-4.5")
-                        .addUserMessage(prompt).tools(schema)
+                        .addUserMessage(prompt).addTool(readTool)
                         .build()
         );
 
