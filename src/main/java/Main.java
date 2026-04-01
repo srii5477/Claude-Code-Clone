@@ -53,12 +53,10 @@ public class Main {
                                         .build())
                         .build()).build();
         while(true) {
-            ChatCompletionCreateParams paramBuilder  = ChatCompletionCreateParams.builder()
-                    .model("anthropic/claude-haiku-4.5")
-                    .addUserMessage(prompt).addTool(readTool)
-                    .build();
             ChatCompletion response = client.chat().completions().create(
-                    paramBuilder
+                    ChatCompletionCreateParams.builder()
+                            .model("anthropic/claude-haiku-4.5")
+                            .addUserMessage(prompt).addTool(readTool).build()
             );
 
             if (response.choices().isEmpty()) {
@@ -67,13 +65,14 @@ public class Main {
 
             // You can use print statements as follows for debugging, they'll be visible when running tests.
             System.err.println("Logs from your program will appear here!");
+            ChatCompletionMessage modelMsg = response.choices().get(0).message();
+            List<ChatCompletionMessageParam> customHistory = new ArrayList<>();
+            customHistory.add(ChatCompletionMessageParam.ofAssistant(modelMsg.toParam()));
+            if(modelMsg.toolCalls().isPresent()) {
 
-            // TODO: Uncomment the line below to pass the first stage
-            if(response.choices().get(0).message().toolCalls().isPresent() && !response.choices().get(0).message().toolCalls().isEmpty()) {
-                Optional<List<ChatCompletionMessageToolCall>> toolCalls = response.choices().get(0).message().toolCalls();
+                Optional<List<ChatCompletionMessageToolCall>> toolCalls = modelMsg.toolCalls();
                 for( int i=0;i<toolCalls.stream().count();i++) {
                 ChatCompletionMessageToolCall.Function fun = toolCalls.get().get(i).function();
-                    List<ChatCompletionMessageParam> list = new ArrayList<>(paramBuilder.messages());
                 if(fun.name().equals("Read")) {
                     String arguments = fun.arguments();
                     ObjectMapper mapper = new ObjectMapper();
@@ -86,12 +85,11 @@ public class Main {
                                             .toolCallId(toolCalls.get().get(i).id())
                                             .content(content)
                                             .build());
-                    list.add(customAddition);
-                    paramBuilder.messages().clear();
-                    paramBuilder.messages().addAll(list);
+                    customHistory.add(customAddition);
 
                 } }
             } else {
+                System.out.println(modelMsg.content());
                 break;
             }
         }
