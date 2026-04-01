@@ -54,7 +54,9 @@ public class Main {
                         .build()).build();
         ArrayList<Object> messages = new ArrayList<>();
         messages.add(Map.of("role", "user", "content", prompt));
-        while(true) {
+        int i=0; boolean choice=false;
+        while(i==0 || choice) {
+            i++;
         ChatCompletion response = client.chat().completions().create(
                 ChatCompletionCreateParams.builder()
                         .model("anthropic/claude-haiku-4.5")
@@ -81,9 +83,10 @@ public class Main {
                 String content = Files.readString(Path.of(map.get("file_path").toString()));
                 //System.out.println(content);
                 messages.add(Map.of("role", "assistant", "tool_call_id", toolCalls.get().getFirst().id(),"content", content));
-
+                choice = true;
             }
         } else {
+            choice = false;
             break;
         } }
     }
