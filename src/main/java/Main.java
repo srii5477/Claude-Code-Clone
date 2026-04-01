@@ -55,15 +55,15 @@ public class Main {
         ArrayList<Object> messages = new ArrayList<>();
         messages.add(Map.of("role", "user", "content", prompt));
         int i=0; boolean choice=false;
-        while(i==0 || choice) {
-            i++;
+
         ChatCompletion response = client.chat().completions().create(
                 ChatCompletionCreateParams.builder()
                         .model("anthropic/claude-haiku-4.5")
                         .addUserMessage(prompt).addTool(readTool)
                         .build()
         );
-
+        while(i==0 || choice) {
+            i++;
         if (response.choices().isEmpty()) {
             throw new RuntimeException("no choices in response");
         }
