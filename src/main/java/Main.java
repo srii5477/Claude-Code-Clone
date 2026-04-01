@@ -74,7 +74,7 @@ public class Main {
             Optional<List<ChatCompletionMessageToolCall>> toolCalls = response.choices().get(0).message().toolCalls();
             ChatCompletionMessageToolCall.Function fun = toolCalls.get().getFirst().function();
             if(fun.name().equals("Read")) {
-                messages.add(Map.of("role", "assistant", "content", null, "tool_calls", toolCalls));
+                messages.add(Map.of("role", "assistant", "content", "", "tool_calls", toolCalls));
                 String arguments = fun.arguments();
                 ObjectMapper mapper = new ObjectMapper();
                 Map map = mapper.readValue(arguments, Map.class);
