@@ -57,10 +57,13 @@ public class Main {
                 ChatCompletionUserMessageParam.builder().content(prompt).build()
         ));
         while(true) {
+            ChatCompletionCreateParams.Builder builder = ChatCompletionCreateParams.builder()
+                    .model("anthropic/claude-haiku-4.5").addTool(readTool);
+            for(ChatCompletionMessageParam item: customHistory) {
+                builder.addMessage(item);
+            }
             ChatCompletion response = client.chat().completions().create(
-                    ChatCompletionCreateParams.builder()
-                            .model("anthropic/claude-haiku-4.5")
-                            .addMessage(customHistory.iterator().next()).addTool(readTool).build()
+                    builder.build()
             );
 
             if (response.choices().isEmpty()) {
