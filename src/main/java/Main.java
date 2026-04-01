@@ -60,7 +60,7 @@ public class Main {
             ChatCompletion response = client.chat().completions().create(
                     ChatCompletionCreateParams.builder()
                             .model("anthropic/claude-haiku-4.5")
-                            .addUserMessage(prompt).addTool(readTool).build()
+                            .addMessage(customHistory.getFirst()).addTool(readTool).build()
             );
 
             if (response.choices().isEmpty()) {
