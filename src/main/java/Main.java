@@ -1,8 +1,6 @@
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.core.JsonField;
 import com.openai.core.JsonValue;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
@@ -14,6 +12,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -53,7 +52,9 @@ public class Main {
                                 )
                                         .build())
                         .build()).build();
-
+        ArrayList<Object> messages = new ArrayList<>();
+        messages.add(Map.of("role", "user", "content", prompt));
+        while(true) {
         ChatCompletion response = client.chat().completions().create(
                 ChatCompletionCreateParams.builder()
                         .model("anthropic/claude-haiku-4.5")
@@ -70,17 +71,20 @@ public class Main {
 
         // TODO: Uncomment the line below to pass the first stage
         if(response.choices().get(0).message().toolCalls().isPresent()) {
-            ChatCompletionMessageToolCall.Function fun = response.choices().get(0).message().toolCalls().get().getFirst().function();
+            Optional<List<ChatCompletionMessageToolCall>> toolCalls = response.choices().get(0).message().toolCalls();
+            ChatCompletionMessageToolCall.Function fun = toolCalls.get().getFirst().function();
             if(fun.name().equals("Read")) {
+                messages.add(Map.of("role", "assistant", "content", null, "tool_calls", toolCalls));
                 String arguments = fun.arguments();
                 ObjectMapper mapper = new ObjectMapper();
                 Map map = mapper.readValue(arguments, Map.class);
                 String content = Files.readString(Path.of(map.get("file_path").toString()));
-                System.out.println(content);
+                //System.out.println(content);
+                messages.add(Map.of("role", "assistant", "tool_call_id", toolCalls.get().getFirst().id(),"content", content));
 
             }
         } else {
-            System.out.print(response.choices().get(0).message().content().orElse(""));
-        }
+            break;
+        } }
     }
 }
