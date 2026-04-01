@@ -96,7 +96,7 @@ public class Main {
 
                 } }
             } else {
-                System.out.println(modelMsg.content());
+                System.out.println(modelMsg.content().orElse(""));
                 break;
             }
         }
