@@ -54,40 +54,39 @@ public class Main {
                         .build()).build();
         ArrayList<Object> messages = new ArrayList<>();
         messages.add(Map.of("role", "user", "content", prompt));
-        int i=0; boolean choice=false;
 
-        ChatCompletion response = client.chat().completions().create(
-                ChatCompletionCreateParams.builder()
-                        .model("anthropic/claude-haiku-4.5")
-                        .addUserMessage(prompt).addTool(readTool)
-                        .build()
-        );
-        while(i==0 || choice) {
-            i++;
-        if (response.choices().isEmpty()) {
-            throw new RuntimeException("no choices in response");
-        }
+        while(true) {
+            ChatCompletion response = client.chat().completions().create(
+                    ChatCompletionCreateParams.builder()
+                            .model("anthropic/claude-haiku-4.5")
+                            .addUserMessage(prompt).addTool(readTool)
+                            .build()
+            );
 
-        // You can use print statements as follows for debugging, they'll be visible when running tests.
-        System.err.println("Logs from your program will appear here!");
-
-        // TODO: Uncomment the line below to pass the first stage
-        if(response.choices().get(0).message().toolCalls().isPresent()) {
-            Optional<List<ChatCompletionMessageToolCall>> toolCalls = response.choices().get(0).message().toolCalls();
-            ChatCompletionMessageToolCall.Function fun = toolCalls.get().getFirst().function();
-            if(fun.name().equals("Read")) {
-                messages.add(Map.of("role", "assistant", "content", "", "tool_calls", toolCalls));
-                String arguments = fun.arguments();
-                ObjectMapper mapper = new ObjectMapper();
-                Map map = mapper.readValue(arguments, Map.class);
-                String content = Files.readString(Path.of(map.get("file_path").toString()));
-                //System.out.println(content);
-                messages.add(Map.of("role", "assistant", "tool_call_id", toolCalls.get().getFirst().id(),"content", content));
-                choice = true;
+            if (response.choices().isEmpty()) {
+                throw new RuntimeException("no choices in response");
             }
-        } else {
-            choice = false;
-            break;
-        } }
+
+            // You can use print statements as follows for debugging, they'll be visible when running tests.
+            System.err.println("Logs from your program will appear here!");
+
+            // TODO: Uncomment the line below to pass the first stage
+            if(response.choices().get(0).message().toolCalls().isPresent() && !response.choices().get(0).message().toolCalls().isEmpty()) {
+                Optional<List<ChatCompletionMessageToolCall>> toolCalls = response.choices().get(0).message().toolCalls();
+                ChatCompletionMessageToolCall.Function fun = toolCalls.get().getFirst().function();
+                if(fun.name().equals("Read")) {
+                    messages.add(Map.of("role", "assistant", "content", "", "tool_calls", toolCalls));
+                    String arguments = fun.arguments();
+                    ObjectMapper mapper = new ObjectMapper();
+                    Map map = mapper.readValue(arguments, Map.class);
+                    String content = Files.readString(Path.of(map.get("file_path").toString()));
+                    //System.out.println(content);
+                    messages.add(Map.of("role", "assistant", "tool_call_id", toolCalls.get().getFirst().id(),"content", content));
+
+                }
+            } else {
+                break;
+            }
+        }
     }
 }
