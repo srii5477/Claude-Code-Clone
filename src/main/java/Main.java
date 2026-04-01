@@ -1,19 +1,22 @@
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
 import com.openai.core.JsonField;
 import com.openai.core.JsonValue;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.FunctionParameters;
-import com.openai.models.chat.completions.ChatCompletion;
-import com.openai.models.chat.completions.ChatCompletionCreateParams;
-import com.openai.models.chat.completions.ChatCompletionTool;
+import com.openai.models.chat.completions.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length < 2 || !"-p".equals(args[0])) {
             System.err.println("Usage: program -p <prompt>");
             System.exit(1);
@@ -66,6 +69,17 @@ public class Main {
         System.err.println("Logs from your program will appear here!");
 
         // TODO: Uncomment the line below to pass the first stage
+        if(response.choices().get(0).message().toolCalls().isPresent()) {
+            ChatCompletionMessageToolCall.Function fun = response.choices().get(0).message().toolCalls().get().getFirst().function();
+            if(fun.name().equals("Read")) {
+                String arguments = fun.arguments();
+                ObjectMapper mapper = new ObjectMapper();
+                Map map = mapper.readValue(arguments, Map.class);
+                String content = Files.readString(Path.of(map.get("file_path").toString()));
+                System.out.println(content);
+
+            }
+        }
         System.out.print(response.choices().get(0).message().content().orElse(""));
     }
 }
