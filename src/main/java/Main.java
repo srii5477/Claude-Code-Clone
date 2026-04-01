@@ -52,6 +52,10 @@ public class Main {
                                 )
                                         .build())
                         .build()).build();
+        List<ChatCompletionMessageParam> customHistory = new ArrayList<>();
+        customHistory.add(ChatCompletionMessageParam.ofUser(
+                ChatCompletionUserMessageParam.builder().content(prompt).build()
+        ));
         while(true) {
             ChatCompletion response = client.chat().completions().create(
                     ChatCompletionCreateParams.builder()
@@ -66,7 +70,7 @@ public class Main {
             // You can use print statements as follows for debugging, they'll be visible when running tests.
             System.err.println("Logs from your program will appear here!");
             ChatCompletionMessage modelMsg = response.choices().get(0).message();
-            List<ChatCompletionMessageParam> customHistory = new ArrayList<>();
+
             customHistory.add(ChatCompletionMessageParam.ofAssistant(modelMsg.toParam()));
             if(modelMsg.toolCalls().isPresent()) {
 
